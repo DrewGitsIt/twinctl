@@ -1,0 +1,235 @@
+<title>Twinctl</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Overpass:wght@400;600;700;800&family=Overpass+Mono:wght@400;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap">
+<style>
+:root{
+  --bg:#FAFBF9; --panel:#FFFFFF; --panel2:#F1F4F0; --ink:#15211B; --ink2:#5A6B60;
+  --line:#DDE4DD; --accent:#0E7D4A; --amber:#B57A17; --red:#C74036;
+  --mono:'Overpass Mono',ui-monospace,Menlo,monospace;
+  --sans:'Overpass',system-ui,sans-serif;
+  --serif:'Source Serif 4',Georgia,serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0E1412; --panel:#151C18; --panel2:#1B2420; --ink:#E8EFEA; --ink2:#93A69B;
+    --line:#26302A; --accent:#3BCB82; --amber:#E8A23D; --red:#E4574D;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0E1412; --panel:#151C18; --panel2:#1B2420; --ink:#E8EFEA; --ink2:#93A69B;
+  --line:#26302A; --accent:#3BCB82; --amber:#E8A23D; --red:#E4574D;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--serif);font-size:16.5px;line-height:1.65}
+.wrap{max-width:880px;margin:0 auto;padding:0 22px 90px}
+header{padding:48px 0 8px}
+.brand{font-family:var(--sans);font-size:12px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--accent)}
+h1{font-family:var(--sans);font-size:clamp(30px,5vw,44px);font-weight:800;margin:6px 0 4px;letter-spacing:-.01em;text-wrap:balance}
+.sub{color:var(--ink2);max-width:64ch;font-size:17px}
+h2{font-family:var(--sans);font-size:23px;font-weight:800;margin:52px 0 10px;letter-spacing:-.01em}
+h2 .no{font-family:var(--mono);color:var(--accent);font-size:14px;margin-right:10px}
+h3{font-family:var(--sans);font-size:16px;font-weight:700;margin:26px 0 6px}
+p,li{max-width:70ch}
+li{margin:5px 0}
+code,.v{font-family:var(--mono);font-size:.86em;background:var(--panel2);border:1px solid var(--line);border-radius:4px;padding:1px 5px}
+pre{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:14px 16px;overflow-x:auto;font-family:var(--mono);font-size:12.8px;line-height:1.55}
+pre code{background:none;border:none;padding:0}
+.tblwrap{overflow-x:auto;border:1px solid var(--line);border-radius:8px;background:var(--panel);margin:14px 0}
+table{border-collapse:collapse;width:100%;font-size:14px;font-family:var(--sans)}
+th{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink2);text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);white-space:nowrap}
+td{padding:8px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+td.v{font-family:var(--mono);font-size:12.5px;white-space:nowrap;background:none;border-left:none;border-right:none;border-radius:0}
+tr:last-child td{border-bottom:none}
+.tag{display:inline-block;font-family:var(--mono);font-size:10px;font-weight:700;border-radius:4px;padding:1px 6px;vertical-align:1px}
+.tag.built{background:color-mix(in srgb,var(--accent) 15%,transparent);color:var(--accent)}
+.tag.spec{background:color-mix(in srgb,var(--amber) 15%,transparent);color:var(--amber)}
+.note{border-left:3px solid var(--accent);background:var(--panel);border-radius:0 8px 8px 0;padding:12px 18px;max-width:70ch;margin:16px 0;font-size:15.5px}
+.note b{color:var(--accent)}
+.warn{border-left-color:var(--red)}
+.warn b{color:var(--red)}
+.planes{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px;margin:18px 0}
+.plane{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px}
+.plane h4{font-family:var(--sans);margin:0 0 6px;font-size:15px}
+.plane p{font-size:14px;color:var(--ink2);margin:0}
+.plane .rw{font-family:var(--mono);font-size:10.5px;color:var(--accent);letter-spacing:.08em}
+footer{margin-top:70px;border-top:1px solid var(--line);padding-top:16px;color:var(--ink2);font-size:12.5px;font-family:var(--mono)}
+a{color:var(--accent)}
+</style>
+
+<div class="wrap">
+<header>
+  <div class="brand">Signal Twin · control surface spec</div>
+  <h1>Twinctl</h1>
+  <p class="sub">The API surface that lets an always-on agent keep a traffic digital twin honest and
+  use it as a world model: observe, fork, perturb, retime, run, compare — plus the verbs a pure
+  simulator never needs: <b>calibrate</b>, <b>validate</b>, and <b>drift</b>, because a twin answers
+  to a real street. Adapted from the <code>simctl</code> harness in <code>murphy-agent</code>;
+  implemented and exercised against the State Street corridor twin.</p>
+</header>
+
+<h2><span class="no">00</span>What's different about a traffic twin</h2>
+<p><code>simctl</code> drives simulators where the sim <i>is</i> the world — OpenTTD, a wafer fab.
+A traffic twin has a third party in the room: the actual corridor, streaming controller events all
+day. That splits the surface into three planes with different trust levels and different write rules:</p>
+<div class="planes">
+  <div class="plane"><div class="rw">READ-ONLY</div><h4>Field</h4>
+    <p>The real street, seen through its data exhaust (ATSPM counts, splits, phase events, probe speeds).
+    The agent can pull it, baseline it, and watch it. It can never write to it.</p></div>
+  <div class="plane"><div class="rw">CALIBRATED STATE</div><h4>Twin</h4>
+    <p>The one world per corridor that is supposed to match reality. Mutated only by
+    <code>calibrate</code> and field re-pulls. Carries a validation score with a freshness date.</p></div>
+  <div class="plane"><div class="rw">DISPOSABLE</div><h4>Scenarios</h4>
+    <p>Forks of the twin. Shocked, retimed, run at 100× real time, compared, then purged. Anything
+    goes here — that is the point of having a twin.</p></div>
+</div>
+<div class="note warn"><b>The prime safety rail:</b> no verb writes to field equipment. The terminal
+verb is <code>promote</code>, which emits a recommendation package for a human traffic engineer.
+The loop closes through people, on purpose.</div>
+
+<h2><span class="no">01</span>Verb reference</h2>
+<p><span class="tag built">BUILT</span> exists in <code>~/repo/signal-twin/twinctl</code> and ran today.
+<span class="tag spec">SPEC</span> is designed but not yet implemented. Every verb takes
+<code>--json</code>; text output is one fact per line, sized for a small model's context.</p>
+
+<h3>Field — the reality interface</h3>
+<div class="tblwrap"><table>
+<tr><th>Verb</th><th></th><th>What it does</th></tr>
+<tr><td class="v">field pull &lt;corridor&gt; --window W</td><td><span class="tag spec">SPEC</span></td>
+<td>Fetch counts, splits, and phase-termination events from the agency feed (UDOT ATSPM v5 report API today) into <code>field/</code>. Idempotent per window.</td></tr>
+<tr><td class="v">field status &lt;corridor&gt;</td><td><span class="tag spec">SPEC</span></td>
+<td>Data freshness and detector health per signal — which movements are countable, which detectors have gone dark since the twin was built.</td></tr>
+<tr><td class="v">field baseline &lt;corridor&gt; &lt;metric&gt;</td><td><span class="tag spec">SPEC</span></td>
+<td>What is normal: mean/std/percentiles of a field metric over the stored history (split failures per hour, approach volume, arrivals on green).</td></tr>
+</table></div>
+
+<h3>Twin lifecycle</h3>
+<div class="tblwrap"><table>
+<tr><th>Verb</th><th></th><th>What it does</th></tr>
+<tr><td class="v">worlds</td><td><span class="tag built">BUILT</span></td><td>List worlds with lineage, calibration state, GEH score.</td></tr>
+<tr><td class="v">init &lt;name&gt; --from &lt;assets&gt;</td><td><span class="tag built">BUILT</span></td><td>Create the base twin from built assets (network, reconstructed timing, field demand). The full auto-build from a signal list + bbox is the spec'd v2.</td></tr>
+<tr><td class="v">observe &lt;world&gt;</td><td><span class="tag built">BUILT</span></td><td>One-screen summary: window, entry demand, validation score, last run KPIs.</td></tr>
+<tr><td class="v">demand &lt;world&gt; · plan &lt;world&gt;</td><td><span class="tag built">BUILT</span></td><td>Inspect demand (with measured/partial/estimated provenance per approach) and the signal plan (cycle, offsets, greens).</td></tr>
+<tr><td class="v">calibrate &lt;world&gt; --iters N --target-pct P</td><td><span class="tag built">BUILT</span></td><td>Iterative demand fitting: route → run → measure sim movement counts → damped proportional adjustment of turn weights and entry flows against measured field counts. Stops at target or N. Ends with a multi-seed validation.</td></tr>
+<tr><td class="v">validate &lt;world&gt;</td><td><span class="tag built">BUILT</span></td><td>GEH scorecard, sim vs field, on <i>truly measured</i> movements only. Stamps the world with score + date. Pass = GEH&lt;5 on ≥85%.</td></tr>
+<tr><td class="v">drift &lt;corridor&gt;</td><td><span class="tag spec">SPEC</span></td><td>Compare fresh field pulls against the twin's stamped behavior: volume z-scores vs lineage baseline, split-failure spikes, timing-plan changes (a re-timed controller shows up as shifted force-off times). Output: a recalibration recommendation with reasons.</td></tr>
+</table></div>
+
+<h3>Scenario machinery</h3>
+<div class="tblwrap"><table>
+<tr><th>Verb</th><th></th><th>What it does</th></tr>
+<tr><td class="v">fork &lt;src&gt; &lt;new&gt;</td><td><span class="tag built">BUILT</span></td><td>Clone a world (state, plan, routes, lineage). Cheap, disposable.</td></tr>
+<tr><td class="v">retime &lt;world&gt; --offsets J --split-shift J</td><td><span class="tag built">BUILT</span></td><td>Edit the signal plan by UDOT signal id: shift offsets; move seconds between mainline and cross green. Refuses edits that leave a green below 8 s.</td></tr>
+<tr><td class="v">perturb &lt;world&gt; &lt;shock&gt; [args]</td><td><span class="tag built">BUILT</span></td><td>Inject a shock: <code>demand_surge</code> (scale an entry or all), <code>lane_closure</code> (cap a lane to walking speed), <code>detector_dark</code> (drift drill). Spec'd: <code>event_egress</code>, <code>signal_flash</code>, <code>transit_priority</code>.</td></tr>
+<tr><td class="v">route &lt;world&gt; · run &lt;world&gt; --seeds a,b,c</td><td><span class="tag built">BUILT</span></td><td>Rebuild routes from demand; simulate 2 h across seeds in parallel; KPIs (mean delay, stops, total delay, arrivals) with across-seed sd.</td></tr>
+<tr><td class="v">measure · compare --baseline W</td><td><span class="tag built">BUILT</span></td><td>Movement counts from a run; KPI table with deltas against a named baseline.</td></tr>
+<tr><td class="v">experiment &lt;world&gt; --candidates JSON --seeds …</td><td><span class="tag built">BUILT</span></td><td>The loop as one deterministic verb (below).</td></tr>
+<tr><td class="v">promote &lt;world&gt;</td><td><span class="tag built">BUILT</span></td><td>Recommendation package: timing sheet (was → recommended per signal), simulated KPIs with seeds, validation stamp, and the reminder that a human applies it.</td></tr>
+<tr><td class="v">kill &lt;world&gt; [--purge]</td><td><span class="tag built">BUILT</span></td><td>Remove a scenario. Only <code>--purge</code> deletes files; the base twin refuses.</td></tr>
+</table></div>
+
+<h3>Always-on</h3>
+<div class="tblwrap"><table>
+<tr><th>Verb</th><th></th><th>What it does</th></tr>
+<tr><td class="v">watch &lt;corridor&gt; [--notify]</td><td><span class="tag spec">SPEC</span></td><td>Daemon: pull field data on a schedule, evaluate alert rules, write metrics/events/alerts to the store. <code>--notify</code> wakes the agent by webhook — with a settle window so a burst is one wake (straight from simctl).</td></tr>
+<tr><td class="v">alerts [--ack] · events &lt;world&gt; · history</td><td><span class="tag built">BUILT</span><span class="tag spec">SPEC</span></td><td>Per-world audit log is built (every route/run/retime/perturb/calibrate is journaled). The cross-world alert store and ack flow are spec'd.</td></tr>
+</table></div>
+
+<h2><span class="no">02</span><code>experiment</code> — the informed version of a textbook test</h2>
+<p>Orchestration is where models fumble, so it is one verb, and it upgrades the naive experiments
+three ways: <b>every candidate is validated before anything forks</b> (all problems reported at once,
+with the valid choices), <b>every clone runs the same multi-seed set</b>, and <b>the verdict requires
+the improvement to clear seed noise</b> (|Δ| &gt; 2·sd), because on a well-timed corridor most textbook
+ideas lose and the difference between −1% and noise is the whole product.</p>
+<pre><code>twinctl experiment ss-cal --seeds 42,7,99 --candidates '[
+  {"name":"offsets",   "retime": {"offsets": {"7149": -12, "7151": -12}}},
+  {"name":"sbgreen",   "retime": {"split_shift": {"7642": 6, "7151": 6}}},
+  {"name":"surge-i80", "perturb": {"shock": "demand_surge", "entry": "wb_7148", "pct": 30}}
+]'</code></pre>
+<p>It forks <code>ss-cal-none</code> plus one clone per candidate, applies each change, runs all
+clones × all seeds in parallel, and prints the ranked table with significance stars and the exact
+<code>promote</code> line for the winner. Before any of that, a <b>freshness gate</b>: if the world's
+validation is missing or failing, the verdict is prefixed with a warning to trust deltas, not
+absolutes.</p>
+
+<h2><span class="no">03</span>The loops an agent runs</h2>
+<h3>Recalibration loop (cron, or a drift alert)</h3>
+<pre><code>twinctl field pull state-street --window yesterday-pm   # new reality
+twinctl drift state-street                              # anything move? (spec)
+twinctl fork ss-base ss-cand
+twinctl calibrate ss-cand --iters 6 --target-pct 90
+twinctl validate ss-cand                                # multi-seed scorecard
+# score improved → ss-cand becomes the new base; else keep old, raise alert</code></pre>
+<h3>Optimization loop (weekly, or after recalibration)</h3>
+<pre><code>twinctl experiment ss-base --seeds 42,7,99 --candidates "$(agent proposes from plan+scorecard)"
+twinctl promote ss-base-offsets        # → recommendation.md for the engineer</code></pre>
+<h3>Incident loop (a planned closure lands on the calendar)</h3>
+<pre><code>twinctl fork ss-base ss-closure
+twinctl perturb ss-closure lane_closure --edge 346397922#1
+twinctl experiment ss-closure --seeds 42,7,99 --candidates '[mitigations…]'</code></pre>
+
+<h2><span class="no">04</span>Design rules carried over from murphy-agent</h2>
+<ul>
+  <li><b>Terse text, one fact per line; <code>--json</code> everywhere.</b> Output is sized for a
+  small local model's context, so the always-on agent can be cheap.</li>
+  <li><b>Validate before you fork.</b> A malformed candidate list reports every problem at once with
+  valid choices beside it — one retry, not five.</li>
+  <li><b>Worlds are directories with lineage.</b> State you can <code>ls</code>, diff, and archive;
+  <code>events.jsonl</code> journals every mutation.</li>
+  <li><b>Orchestration is deterministic code, not model improvisation.</b> The
+  <code>experiment</code> and <code>calibrate</code> loops are verbs.</li>
+  <li><b>Wake, don't poll.</b> Alerts settle and debounce into single webhook wakes; the wake message
+  names the agent's first command.</li>
+</ul>
+<p>And two rules simctl doesn't need: <b>calibration state is load-bearing</b> (every experiment
+verdict carries the validation stamp it ran under), and <b>the terminal verb is a document</b>, not an
+actuation.</p>
+
+<h2><span class="no">05</span>Schemas</h2>
+<pre><code>worlds/&lt;name&gt;/
+  meta.json        lineage, window, validation stamp, calibration record, last run
+  net.net.xml      SUMO network (OSM-derived)
+  model.json       reconstructed timing + raw measured field demand (the truth to match)
+  demand.json      current working demand   ← the only thing calibrate mutates
+  plan.tll.xml     current signal plan      ← the only thing retime mutates
+  turns.xml flows.xml routes.rou.xml        derived (route)
+  field/           raw agency pulls
+  runs/&lt;label&gt;-s&lt;seed&gt;/                    tripinfo, vehroutes
+  events.jsonl     audit log
+
+demand.json  = { entries: { flow_id: {edge, vph, anchor: [signal, direction]} },
+                 signals: { sig: { Direction: {moves: {L,T,R}, source} } } }
+candidate    = { name, retime?: {offsets?, split_shift?}, perturb?: {shock, …} }</code></pre>
+
+<h2><span class="no">06</span>Appendix — the surface in use (today's session)</h2>
+<p>The calibration ask (#2) run entirely through this surface, against real UDOT field counts from
+Wed Sep 9 2026, 4–6 PM:</p>
+<pre><code>$ twinctl init ss-base --from assets && twinctl route ss-base && twinctl run ss-base
+ss-base created · 16721 vehicles routed
+arrived: 14414   mean_delay_s: 216.0   mean_stops: 3.83     # bit-for-bit = published artifact baseline
+
+$ twinctl validate ss-base                                   # BEFORE calibration
+7149 Ea T  field   712  sim   312  GEH 17.70  <-- FAIL
+7151 So T  field  1462  sim   838  GEH 18.42  <-- FAIL
+7642 So T  field  1488  sim   927  GEH 16.14  <-- FAIL       # southbound starving, 1700S EB starving
+GEH<5 on 82.5% of 40 measured movements (mean 3.17, max 18.42) -> NOT PASSING
+
+$ twinctl calibrate ss-base --iters 6 --target-pct 90
+iter 0: GEH<5 82.5%  mean 3.17  max 18.42
+iter 1: GEH<5 85.0%  mean 2.65  max 16.40
+iter 2: GEH<5 87.5%  mean 2.75  max 15.38
+iter 3: GEH<5 82.5%  mean 2.64  max 14.85
+iter 4: GEH<5 85.0%  mean 2.61  max 17.25
+iter 5: GEH<5 85.0%  mean 2.52  max 15.24
+calibrated: GEH<5 85.0%  mean 2.43  (PASS)                   # 3-seed validation
+
+$ twinctl validate ss-base                                   # AFTER: what's left fails structurally
+7149 Ea T  field   712  sim   376  GEH 14.42  <-- FAIL       # entry pushed to clamp (2135 vph), edge can't inject it
+7151 So T  field  1462  sim   900  GEH 16.36  <-- FAIL       # sb_main at clamp (2972 vph), SB pipe caps out
+7642 So T  field  1488  sim  1059  GEH 12.03  <-- FAIL
+GEH<5 on 85.0% of 40 measured movements (mean 2.43, max 16.36) -> PASS</code></pre>
+<p id="cal-notes">Reading it: the loop repaired every error that demand scaling can repair — mean GEH fell 23% (3.17 → 2.43) and the southbound gap closed by ~130 veh/h — and it drove the two suspect entries to their safety clamps without closing the rest. That residual is the finding: the six failures cluster on two structural defects of the v0 network, a southbound feed that cannot physically carry 1,488 veh/h (insertion capacity at the north end plus mid-corridor bleed through estimated turn ratios at 1300 S), and a 1700 S eastbound entry the bounding box cut too short to inject 712 veh/h through. Calibration only touches measured movements by design, so it cannot silently hide network errors as demand errors — the next verbs are network fixes (extend the bbox, add a second SB source lane), then re-calibrate. That separation — demand errors converge, structure errors surface — is what makes the loop safe to run unattended.</p>
+
+<footer>Signal Twin · twinctl 0.1 · spec informed by murphy-agent/sim/simctl · implementation at
+~/repo/signal-twin/twinctl</footer>
+</div>
