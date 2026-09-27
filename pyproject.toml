@@ -6,6 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "twinctl"
 version = "0.1.0"
 description = "Control surface for a traffic corridor digital twin (SUMO)."
+license = { text = "MIT" }
 requires-python = ">=3.9"
 dependencies = ["sumolib"]
 
